@@ -1,6 +1,5 @@
 #!/bin/bash
 
-EXEC_NAME="Filename_Character_Remover_Z"
 SCRIPT_NAME="filename-character-remover-z.py"
 APP_NAME="Filename Character Remover Z"
 DESKTOP_FILE_NAME="filename-character-remover-z.desktop"
@@ -22,12 +21,18 @@ mkdir -p "$APP_DIR" "$DESKTOP_DIR" "$ICON_DIR"
 
 # Install dependencies
 echo "[INFO] Installing dependencies..."
-python3 -m pip install pyinstaller pillow --break-system-packages -q 2>/dev/null || \
-    python3 -m pip install pyinstaller pillow -q 2>/dev/null || true
+python3 -m pip install pillow --break-system-packages -q 2>/dev/null || \
+    python3 -m pip install pillow -q 2>/dev/null || true
 
-# Clean old builds
-echo "[INFO] Cleaning old builds..."
-rm -rf "$SCRIPT_DIR/build/" "$SCRIPT_DIR/__pycache__/"
+# Sanity check: tkinter must come from the system Python, not pip
+if ! python3 -c "import tkinter" 2>/dev/null; then
+    echo "[WARN] tkinter not found for python3. Install it via your distro"
+    echo "       package manager (e.g. 'sudo pacman -S tk' or 'sudo apt install python3-tk')."
+fi
+
+# Clean old artifacts
+echo "[INFO] Cleaning old artifacts..."
+rm -rf "$SCRIPT_DIR/__pycache__/"
 
 # ---------------------------------------------------------------------------
 # Install SVG icon — exported from the same base64 icon embedded in the .py
@@ -45,21 +50,9 @@ fi
 ICON_DIR_FLAT="$HOME/.local/share/icons"
 cp "$ICON_PATH" "$ICON_DIR_FLAT/filename-character-remover-z.svg"
 
-# Build executable
-echo "[INFO] Building executable..."
-python3 -m PyInstaller --onefile --windowed \
-    --name "$EXEC_NAME" \
-    --distpath "$SCRIPT_DIR" \
-    --workpath "$SCRIPT_DIR/build" \
-    --specpath "$SCRIPT_DIR" \
-    "$SCRIPT_DIR/$SCRIPT_NAME"
-
-if [ $? -ne 0 ]; then
-    echo "[ERROR] Build failed."
-    exit 1
-fi
-
-chmod +x "$SCRIPT_DIR/$EXEC_NAME"
+# No PyInstaller executable is built anymore on Linux — shortcuts run the
+# .py script directly via python3, so just make sure it's executable.
+chmod +x "$SCRIPT_DIR/$SCRIPT_NAME"
 
 # ---------------------------------------------------------------------------
 # Write the .desktop entry (system menu / Start Menu equivalent)
@@ -68,7 +61,7 @@ echo "[INFO] Registering in system menu..."
 DESKTOP_ENTRY_CONTENT="[Desktop Entry]
 Name=$APP_NAME
 Comment=Remove custom characters from filenames / Remover caracteres de nomes de arquivo
-Exec=$SCRIPT_DIR/$EXEC_NAME
+Exec=python3 \"$SCRIPT_DIR/$SCRIPT_NAME\"
 Icon=filename-character-remover-z
 Terminal=false
 Type=Application
@@ -124,15 +117,15 @@ if command -v xdg-open &>/dev/null && command -v xdotool &>/dev/null; then
 fi
 
 # ---------------------------------------------------------------------------
-# Clean up build artifacts
+# Clean up stray artifacts
 # ---------------------------------------------------------------------------
 echo "[INFO] Cleaning up..."
-rm -rf "$SCRIPT_DIR/build/" "$SCRIPT_DIR/${EXEC_NAME}.spec"
+rm -rf "$SCRIPT_DIR/__pycache__/"
 
 echo ""
 echo "=========================================="
 echo "  Done!"
-echo "  Executable : $SCRIPT_DIR/$EXEC_NAME"
+echo "  Script     : $SCRIPT_DIR/$SCRIPT_NAME"
 echo "  Icon       : $ICON_PATH"
 echo "  Menu entry : $APP_DIR/$DESKTOP_FILE_NAME"
 echo "  Desktop    : $DESKTOP_DIR/$DESKTOP_FILE_NAME"

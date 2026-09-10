@@ -603,8 +603,10 @@ class CustomCharacterRemover:
 
     def _lock_size(self):
         """
-        Lock the window to the tallest size across all languages so switching
-        never clips widgets (e.g. credits disappearing on Linux with PT-BR).
+        Compute the tallest/widest reqsize across all languages so the window
+        never opens clipped (e.g. credits disappearing on Linux with PT-BR),
+        then use that as a MINIMUM size only. The window stays freely
+        resizable and maximizable in both directions.
         Applies every language, measures, keeps the max, then restores.
         """
         max_w = 1080
@@ -623,9 +625,8 @@ class CustomCharacterRemover:
         self.lang = original_lang
         self._apply_lang()
 
-        self.root.resizable(False, False)
+        self.root.resizable(True, True)
         self.root.minsize(max_w, max_h)
-        self.root.maxsize(max_w, max_h)
 
     # -----------------------------------------------------------------------
     # Theme helpers

@@ -9,8 +9,6 @@
 <div align="center">
 <img width="1152" height="735" alt="image" src="https://github.com/user-attachments/assets/25188300-73b5-40c3-84b5-f7ac8c01df50" />
 
-| This preview is of a previous version of the program | Essa prévia é de uma versaõ anterior |
-
 ---
 
 ## 📖 Language | Idioma

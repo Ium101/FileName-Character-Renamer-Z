@@ -1,8 +1,8 @@
 #!/bin/bash
 
-SCRIPT_NAME="filename-character-remover-z.py"
-APP_NAME="Filename Character Remover Z"
-DESKTOP_FILE_NAME="filename-character-remover-z.desktop"
+SCRIPT_NAME="filename-character-renamer-z.py"
+APP_NAME="Filename Character Renamer Z"
+DESKTOP_FILE_NAME="filename-character-renamer-z.desktop"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="$HOME/.local/share/applications"
 ICON_DIR="$HOME/.local/share/icons/hicolor/scalable/apps"
@@ -40,7 +40,7 @@ rm -rf "$SCRIPT_DIR/__pycache__/"
 # Transparent background, teal document + Z badge, no black anywhere.
 # ---------------------------------------------------------------------------
 echo "[INFO] Installing icon..."
-ICON_PATH="$ICON_DIR/filename-character-remover-z.svg"
+ICON_PATH="$ICON_DIR/filename-character-renamer-z.svg"
 python3 "$SCRIPT_DIR/$SCRIPT_NAME" --generate-icon --svg="$ICON_PATH"
 if [ ! -f "$ICON_PATH" ]; then
     echo "[WARN] Icon generation failed, continuing without icon."
@@ -48,7 +48,7 @@ fi
 
 # Also put a copy in the flat icons dir (for DEs that look there)
 ICON_DIR_FLAT="$HOME/.local/share/icons"
-cp "$ICON_PATH" "$ICON_DIR_FLAT/filename-character-remover-z.svg"
+cp "$ICON_PATH" "$ICON_DIR_FLAT/filename-character-renamer-z.svg"
 
 # No PyInstaller executable is built anymore on Linux — shortcuts run the
 # .py script directly via python3, so just make sure it's executable.
@@ -60,9 +60,9 @@ chmod +x "$SCRIPT_DIR/$SCRIPT_NAME"
 echo "[INFO] Registering in system menu..."
 DESKTOP_ENTRY_CONTENT="[Desktop Entry]
 Name=$APP_NAME
-Comment=Remove custom characters from filenames / Remover caracteres de nomes de arquivo
+Comment=Remove or swap characters in filenames / Remover ou trocar caracteres em nomes de arquivo
 Exec=python3 \"$SCRIPT_DIR/$SCRIPT_NAME\"
-Icon=filename-character-remover-z
+Icon=filename-character-renamer-z
 Terminal=false
 Type=Application
 Categories=Utility;FileTools;FileManager;

@@ -16,18 +16,18 @@
 
 Windows:
 ```bash
-python filename-character-remover-z.py
+python filename-character-renamer-z.py
 ```
 
 Linux / macOS:
 ```bash
-python3 filename-character-remover-z-linux.py
+python3 filename-character-renamer-z.py
 ```
 
 **Pre-built executable:**
-- **Windows** — double-click `Filename Character Remover Z.exe`
-- **Linux** — run `./Filename\ Character\ Remover\ Z` in terminal, or double-click if your file manager supports it
-- **macOS** — double-click `Filename Character Remover Z.app` in Finder
+- **Windows** — double-click `Filename Character Renamer Z.exe`
+- **Linux** — run `./Filename\ Character\ Renamer\ Z` in terminal, or double-click if your file manager supports it
+- **macOS** — double-click `Filename Character Renamer Z.app` in Finder
 
 **Build it yourself:**
 
@@ -160,18 +160,18 @@ The small button in the top-right corner of the yellow banner switches the inter
 
 Windows:
 ```bash
-python filename-character-remover-z.py
+python filename-character-renamer-z.py
 ```
 
 Linux / macOS:
 ```bash
-python3 filename-character-remover-z-linux.py
+python3 filename-character-renamer-z.py
 ```
 
 **Executável pré-compilado:**
-- **Windows** — clique duas vezes em `Filename Character Remover Z.exe`
-- **Linux** — execute `./Filename\ Character\ Remover\ Z` no terminal, ou clique duas vezes se seu gerenciador de arquivos suportar
-- **macOS** — clique duas vezes em `Filename Character Remover Z.app` no Finder
+- **Windows** — clique duas vezes em `Filename Character Renamer Z.exe`
+- **Linux** — execute `./Filename\ Character\ Renamer\ Z` no terminal, ou clique duas vezes se seu gerenciador de arquivos suportar
+- **macOS** — clique duas vezes em `Filename Character Renamer Z.app` no Finder
 
 **Compilar você mesmo:**
 

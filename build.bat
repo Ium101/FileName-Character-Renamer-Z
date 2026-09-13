@@ -1,9 +1,9 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-set SCRIPT_NAME=filename-character-remover-z.py
-set APP_NAME=Filename Character Remover Z
-set EXEC_NAME=Filename_Character_Remover_Z.exe
+set SCRIPT_NAME=filename-character-renamer-z.py
+set APP_NAME=Filename Character Renamer Z
+set EXEC_NAME=Filename_Character_Renamer_Z.exe
 set ICON_FILE=icon_fcr_z.ico
 
 cd /d "%~dp0"
@@ -13,7 +13,7 @@ set "PROJ=%~dp0"
 set "PROJ=%PROJ:~0,-1%"
 
 echo ===========================================
-echo  Building Filename Character Remover Z
+echo  Building Filename Character Renamer Z
 echo  for Windows
 echo ===========================================
 
@@ -63,9 +63,9 @@ if not exist "%PROJ%\%ICON_FILE%" (
 :: Build executable
 echo [INFO] Building executable...
 if exist "%PROJ%\%ICON_FILE%" (
-    python -m PyInstaller --onefile --windowed --name "Filename_Character_Remover_Z" --icon "%PROJ%\%ICON_FILE%" --distpath "%PROJ%" --workpath "%PROJ%\build" --specpath "%PROJ%" "%SCRIPT_NAME%"
+    python -m PyInstaller --onefile --windowed --name "Filename_Character_Renamer_Z" --icon "%PROJ%\%ICON_FILE%" --distpath "%PROJ%" --workpath "%PROJ%\build" --specpath "%PROJ%" "%SCRIPT_NAME%"
 ) else (
-    python -m PyInstaller --onefile --windowed --name "Filename_Character_Remover_Z" --distpath "%PROJ%" --workpath "%PROJ%\build" --specpath "%PROJ%" "%SCRIPT_NAME%"
+    python -m PyInstaller --onefile --windowed --name "Filename_Character_Renamer_Z" --distpath "%PROJ%" --workpath "%PROJ%\build" --specpath "%PROJ%" "%SCRIPT_NAME%"
 )
 if errorlevel 1 (
     echo [ERROR] Build failed.
@@ -85,8 +85,8 @@ if not exist "%STARTMENU_DIR%" mkdir "%STARTMENU_DIR%"
 (
     echo $target   = '%TARGET%'
     echo $workdir  = '%PROJ%'
-    echo $appname  = 'Filename Character Remover Z'
-    echo $desc     = 'Filename Character Remover Z'
+    echo $appname  = 'Filename Character Renamer Z'
+    echo $desc     = 'Filename Character Renamer Z'
     echo $ws = New-Object -ComObject WScript.Shell
     echo.
     echo # Desktop shortcut ^(uses the real shell folder, works on all locales^)
@@ -120,7 +120,7 @@ del /f /q "%PS_TMP%" >nul 2>&1
 echo [INFO] Cleaning up...
 del /f /q "%PROJ%\%ICON_FILE%" >nul 2>&1
 if exist "%PROJ%\build"                             rd /s /q "%PROJ%\build"
-if exist "%PROJ%\Filename_Character_Remover_Z.spec" del /f /q "%PROJ%\Filename_Character_Remover_Z.spec"
+if exist "%PROJ%\Filename_Character_Renamer_Z.spec" del /f /q "%PROJ%\Filename_Character_Renamer_Z.spec"
 
 echo.
 echo [OK] Done!

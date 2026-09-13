@@ -1,4 +1,4 @@
-# Filename Character Remover Z
+# Filename Character Renamer Z
 
 ![Python Version](https://img.shields.io/badge/python-3.6+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -46,12 +46,12 @@ A simple GUI tool to clean up filenames in bulk — remove characters, fix Dolph
 
 **Windows:**
 ```bash
-python filename-character-remover-z.py
+python filename-character-renamer-z.py
 ```
 
 **Linux / macOS:**
 ```bash
-python3 filename-character-remover-z-linux.py
+python3 filename-character-renamer-z.py
 ```
 
 ### Building a standalone executable
@@ -68,9 +68,9 @@ chmod +x build.sh
 ```
 
 Output:
-- Windows → `dist\Filename Character Remover Z.exe`
-- Linux → `dist/Filename Character Remover Z`
-- macOS → `dist/Filename Character Remover Z.app`
+- Windows → `dist\Filename Character Renamer Z.exe`
+- Linux → `dist/Filename Character Renamer Z`
+- macOS → `dist/Filename Character Renamer Z.app`
 
 ### How to use
 
@@ -143,12 +143,12 @@ Uma ferramenta GUI simples para limpar nomes de arquivos em massa — remove car
 
 **Windows:**
 ```bash
-python filename-character-remover-z.py
+python filename-character-renamer-z.py
 ```
 
 **Linux / macOS:**
 ```bash
-python3 filename-character-remover-z-linux.py
+python3 filename-character-renamer-z.py
 ```
 
 ### Construindo um executável independente
@@ -165,9 +165,9 @@ chmod +x build.sh
 ```
 
 Saída:
-- Windows → `dist\Filename Character Remover Z.exe`
-- Linux → `dist/Filename Character Remover Z`
-- macOS → `dist/Filename Character Remover Z.app`
+- Windows → `dist\Filename Character Renamer Z.exe`
+- Linux → `dist/Filename Character Renamer Z`
+- macOS → `dist/Filename Character Renamer Z.app`
 
 ### Como usar
 

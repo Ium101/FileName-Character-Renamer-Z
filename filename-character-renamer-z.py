@@ -1158,6 +1158,39 @@ class CustomCharacterRemover:
             initialdir=start,
         )
 
+    def _pick_file(self, initial=""):
+        """
+        On Linux, try kdialog (native KDE/Dolphin-style file dialog) first,
+        then fall back to tkinter's askopenfilename.
+        On Windows/macOS always use tkinter.
+        """
+        start = initial if (initial and os.path.isdir(initial)) else \
+                os.path.expanduser("~")
+        if platform.system() == "Linux" and shutil.which("kdialog"):
+            try:
+                result = subprocess.run(
+                    ["kdialog", "--title", self._t("btn_file"),
+                     "--getopenfilename", start],
+                    capture_output=True, text=True, timeout=120
+                )
+            except Exception:
+                # kdialog itself couldn't be launched (missing at runtime,
+                # timed out, etc.) -- fall through to the tkinter dialog.
+                pass
+            else:
+                # kdialog actually ran and showed its window. Whatever the
+                # user did there (picked a file, or cancelled/closed it)
+                # is final -- never chain into a second dialog afterwards.
+                if result.returncode == 0:
+                    path = result.stdout.strip()
+                    if path and os.path.isfile(path):
+                        return path
+                return ""
+        return filedialog.askopenfilename(
+            title=self._t("btn_file"),
+            initialdir=start,
+        )
+
     # -----------------------------------------------------------------------
     # Core logic
     # -----------------------------------------------------------------------
@@ -1246,12 +1279,7 @@ class CustomCharacterRemover:
         self._load_folder(folder)
 
     def select_file(self):
-        initial = self.last_folder if (self.last_folder and
-                                        os.path.isdir(self.last_folder)) else None
-        file_path = filedialog.askopenfilename(
-            title=self._t("btn_file"),
-            initialdir=initial,
-        )
+        file_path = self._pick_file(self.last_folder)
         if not file_path:
             return
         self._load_file(file_path)

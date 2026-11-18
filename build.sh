@@ -2,7 +2,7 @@
 
 SCRIPT_NAME="filename-character-renamer-z.py"
 APP_NAME="Filename Character Renamer Z"
-DESKTOP_FILE_NAME="filename-character-renamer-z.desktop"
+DESKTOP_FILE_NAME="Filename Character Renamer Z.desktop"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="$HOME/.local/share/applications"
 ICON_DIR="$HOME/.local/share/icons/hicolor/scalable/apps"

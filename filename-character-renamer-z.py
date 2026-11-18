@@ -5,7 +5,9 @@ from tkinter import font as tkfont
 import os
 import re
 import sys
+import time
 import io
+import json
 import base64
 import configparser
 import shutil
@@ -348,6 +350,8 @@ STRINGS = {
         "path_hint":           "Type or paste a folder/file path, then press Enter",
         "warn_bad_path":       "Invalid Path",
         "warn_bad_path_msg":   "That path doesn't exist. Please check it and try again.",
+        "recent_empty":        "(no recent folders / files yet)",
+        "recent_clear":        "Clear recent list",
         # case row
         "case_cb":             "Case-sensitive matching",
         # buttons
@@ -432,6 +436,8 @@ STRINGS = {
         "path_hint":           "Digite ou cole um caminho de pasta/arquivo e pressione Enter",
         "warn_bad_path":       "Caminho Invalido",
         "warn_bad_path_msg":   "Esse caminho nao existe. Verifique e tente novamente.",
+        "recent_empty":        "(nenhuma pasta / arquivo recente ainda)",
+        "recent_clear":        "Limpar lista de recentes",
         # case row
         "case_cb":             "Correspondencia com diferenciacao de maiusculas",
         # buttons
@@ -543,6 +549,9 @@ def normalise_extension(raw):
 # GUI
 # ---------------------------------------------------------------------------
 
+MAX_RECENT_PATHS = 15   # how many recent folders/files the dropdown remembers
+
+
 class CustomCharacterRemover:
     def __init__(self, root):
         self.root        = root
@@ -551,6 +560,9 @@ class CustomCharacterRemover:
         self.base_folder = None
         self.dark_mode   = False
         self.last_folder = ""
+        self.recent_paths = []   # list of (kind, path); kind is "d" (folder) or "f" (file)
+        self._recent_menu = None # currently posted dropdown menu, if any
+        self._recent_closed_at = 0.0  # time.monotonic() of the last popup close
 
         # Defaults always set here so they exist even when INI is absent (first run)
         self._cfg_fix_dolphin     = False
@@ -568,6 +580,7 @@ class CustomCharacterRemover:
 
         self._load_config()
         self._build_ui()
+        self._bind_recent_dismiss()
         # Restore saved checkbox/entry states from INI
         self.fix_dolphin.set(self._cfg_fix_dolphin)
         self.add_ext_enabled.set(self._cfg_add_ext_enabled)
@@ -592,7 +605,7 @@ class CustomCharacterRemover:
 
     def _load_config(self):
         path = _get_config_path()
-        cfg  = configparser.ConfigParser()
+        cfg  = configparser.ConfigParser(interpolation=None)
         if not cfg.read(path, encoding="utf-8"):
             return   # file absent — defaults from __init__ stay in place
         s = "settings"
@@ -608,14 +621,17 @@ class CustomCharacterRemover:
         self._cfg_char_value      = cfg.get       (s, "char_value",       fallback="[]")
         self._cfg_swap_mode       = cfg.getboolean(s, "swap_mode",        fallback=False)
         self._cfg_swap_value      = cfg.get       (s, "swap_value",       fallback="")
+        self.recent_paths         = self._parse_recent(
+            cfg.get(s, "recent_paths", fallback="[]"))
 
     def _save_config(self):
         path = _get_config_path()
-        cfg  = configparser.ConfigParser()
+        cfg  = configparser.ConfigParser(interpolation=None)
         cfg["settings"] = {
             "dark_mode":       str(self.dark_mode),
             "lang":            self.lang,
             "last_folder":     self.last_folder,
+            "recent_paths":    json.dumps(self.recent_paths, ensure_ascii=False),
             "fix_dolphin":     str(self.fix_dolphin.get()),
             "add_ext_enabled": str(self.add_ext_enabled.get()),
             "add_ext_value":   self.add_ext_entry.get(),
@@ -822,8 +838,15 @@ class CustomCharacterRemover:
         self.path_entry = tk.Entry(self.case_frame, textvariable=self.path_var,
                                    font=("Arial", 12))
         self.path_entry.pack(side=tk.LEFT, fill=tk.X, expand=True,
-                             padx=(0, 15))
+                             padx=(0, 2))
         self.path_entry.bind("<Return>", self._on_path_entry_submit)
+        self.path_entry.bind("<Down>",   self._show_recent_menu)
+
+        # Dropdown arrow: lists recently used folders / files
+        self.recent_btn = tk.Button(self.case_frame, text="\u25BC",
+                                    font=("Arial", 9), width=2,
+                                    command=self._show_recent_menu)
+        self.recent_btn.pack(side=tk.LEFT, padx=(0, 15), fill=tk.Y)
 
         self.case_cb = tk.Checkbutton(self.case_frame, text="",
                        variable=self.case_sensitive,
@@ -1022,6 +1045,10 @@ class CustomCharacterRemover:
         else:
             self.path_entry.config(disabledbackground=p["entry_dis_bg"],
                                    disabledforeground=p["entry_dis_fg"])
+        self.recent_btn.config(
+            bg=p["entry_bg"], fg=p["entry_fg"],
+            activebackground=p["list_sel_bg"], activeforeground=p["list_sel_fg"],
+        )
         self.case_cb.config(
             bg=p["root_bg"], fg=p["case_fg"],
             activebackground=p["root_bg"], activeforeground=p["case_fg"],
@@ -1132,6 +1159,7 @@ class CustomCharacterRemover:
         then fall back to tkinter's askdirectory.
         On Windows/macOS always use tkinter.
         """
+        self._close_recent_menu()
         start = initial if (initial and os.path.isdir(initial)) else \
                 os.path.expanduser("~")
         if platform.system() == "Linux" and shutil.which("kdialog"):
@@ -1164,6 +1192,7 @@ class CustomCharacterRemover:
         then fall back to tkinter's askopenfilename.
         On Windows/macOS always use tkinter.
         """
+        self._close_recent_menu()
         start = initial if (initial and os.path.isdir(initial)) else \
                 os.path.expanduser("~")
         if platform.system() == "Linux" and shutil.which("kdialog"):
@@ -1241,6 +1270,7 @@ class CustomCharacterRemover:
         self.base_folder  = folder
         self.last_folder  = folder
         self.path_var.set(folder)
+        self._add_recent("d", folder)
         self._save_config()
         self.status.config(
             text=self._t("status_scanning").format(folder=folder),
@@ -1253,6 +1283,7 @@ class CustomCharacterRemover:
         # Remember the directory of the selected file
         self.last_folder = os.path.dirname(file_path)
         self.path_var.set(file_path)
+        self._add_recent("f", file_path)
         self._save_config()
 
         self.base_folder = None
@@ -1273,16 +1304,199 @@ class CustomCharacterRemover:
                                fg=self._sc("success"))
 
     def select_folder(self):
+        self._close_recent_menu()
         folder = self._pick_folder(self.last_folder)
         if not folder:
             return
         self._load_folder(folder)
 
     def select_file(self):
+        self._close_recent_menu()
         file_path = self._pick_file(self.last_folder)
         if not file_path:
             return
         self._load_file(file_path)
+
+    # -----------------------------------------------------------------------
+    # Recent folders / files dropdown
+    # -----------------------------------------------------------------------
+
+    @staticmethod
+    def _parse_recent(raw):
+        """Parse the INI value into a clean list of (kind, path) tuples.
+        Tolerates a missing / corrupt value (returns an empty list)."""
+        try:
+            data = json.loads(raw)
+        except Exception:
+            return []
+        out = []
+        if isinstance(data, list):
+            for item in data:
+                if (isinstance(item, (list, tuple)) and len(item) == 2
+                        and item[0] in ("d", "f")
+                        and isinstance(item[1], str) and item[1]):
+                    out.append((item[0], item[1]))
+        return out[:MAX_RECENT_PATHS]
+
+    @staticmethod
+    def _path_key(path):
+        return os.path.normcase(os.path.normpath(path))
+
+    def _add_recent(self, kind, path):
+        """Put path at the top of the recent list (de-duplicated, capped)."""
+        key = self._path_key(path)
+        self.recent_paths = [(k, p) for (k, p) in self.recent_paths
+                             if self._path_key(p) != key]
+        self.recent_paths.insert(0, (kind, path))
+        del self.recent_paths[MAX_RECENT_PATHS:]
+
+    def _remove_recent(self, path):
+        key = self._path_key(path)
+        self.recent_paths = [(k, p) for (k, p) in self.recent_paths
+                             if self._path_key(p) != key]
+
+    def _clear_recent(self):
+        self._close_recent_menu()
+        self.recent_paths = []
+        self._save_config()
+
+    def _close_recent_menu(self):
+        """Make sure the recent-paths popup is gone (unposted + destroyed).
+        Called before opening any dialog: the file/folder pickers block the
+        Tk event loop while they run, so a popup left posted would stay
+        frozen on screen on top of them."""
+        menu, self._recent_menu = self._recent_menu, None
+        if menu is None:
+            return
+        self._recent_closed_at = time.monotonic()
+        try:
+            menu.unpost()
+        except Exception:
+            pass
+        try:
+            menu.grab_release()
+        except Exception:
+            pass
+        try:
+            menu.destroy()
+        except Exception:
+            pass
+        try:
+            self.root.update_idletasks()
+        except Exception:
+            pass
+
+    def _bind_recent_dismiss(self):
+        """Close the recent-paths popup when the user clicks anywhere else,
+        presses Escape, switches to another window, or moves/minimises the
+        app. (Some window managers don't dismiss a Tk popup menu on their
+        own, so it is done explicitly here.)"""
+        self.root.bind_all("<ButtonPress>", self._on_any_click, add="+")
+        self.root.bind_all("<Escape>",      self._on_escape,    add="+")
+        self.root.bind("<FocusOut>",        self._on_focus_out, add="+")
+        self.root.bind("<Unmap>",           self._on_root_moved, add="+")
+        self.root.bind("<Configure>",       self._on_root_moved, add="+")
+
+    def _on_any_click(self, event):
+        if self._recent_menu is None:
+            return
+        # Clicks on the menu itself pick an entry.
+        if event.widget is self._recent_menu:
+            return
+        # Click on the arrow while the popup is open: close it now. The
+        # button's own command fires on release and is swallowed by the
+        # "just closed" guard in _show_recent_menu(), so it does not reopen.
+        # (Any other click elsewhere closes it too.)
+        self._close_recent_menu()
+
+    def _on_escape(self, event=None):
+        if self._recent_menu is not None:
+            self._close_recent_menu()
+
+    def _on_focus_out(self, event=None):
+        if self._recent_menu is not None:
+            self.root.after(150, self._check_focus_lost)
+
+    def _check_focus_lost(self):
+        # focus_displayof() is None when no window of this app has the focus,
+        # i.e. the user clicked into another application / the desktop.
+        try:
+            lost = self.root.focus_displayof() is None
+        except Exception:
+            lost = True
+        if lost:
+            self._close_recent_menu()
+
+    def _on_root_moved(self, event=None):
+        if event is not None and event.widget is not self.root:
+            return
+        if self._recent_menu is not None:
+            self._close_recent_menu()
+
+    def _show_recent_menu(self, event=None):
+        """Pop up the recent folders/files list right under the path bar.
+        If it is already open, close it instead (toggle)."""
+        last_closed = self._recent_closed_at
+        menu = self._recent_menu
+        if menu is not None:
+            try:
+                is_open = bool(menu.winfo_ismapped())
+            except Exception:
+                is_open = False
+            self._close_recent_menu()
+            if is_open:
+                return "break"
+        # The popup was dismissed a moment ago by the very click that
+        # triggered this call (clicking the arrow while the list is open:
+        # Tk/the window manager closes the popup on press, then the button's
+        # command fires on release). Treat that click as "close", not as
+        # "open again".
+        if event is None and time.monotonic() - last_closed < 0.4:
+            return "break"
+        pal  = self._palette()
+        menu = self._recent_menu = tk.Menu(self.root, tearoff=0, font=("Arial", 11),
+                       bg=pal["entry_bg"], fg=pal["entry_fg"],
+                       activebackground=pal["list_sel_bg"],
+                       activeforeground=pal["list_sel_fg"],
+                       disabledforeground=pal["entry_dis_fg"])
+        if not self.recent_paths:
+            menu.add_command(label=self._t("recent_empty"), state=tk.DISABLED)
+        else:
+            for kind, path in self.recent_paths:
+                shown = path if len(path) <= 90 else "\u2026" + path[-89:]
+                icon  = "\U0001F4C1" if kind == "d" else "\U0001F4C4"
+                menu.add_command(label=f"{icon}  {shown}",
+                                 command=lambda p=path: self._on_recent_selected(p))
+            menu.add_separator()
+            menu.add_command(label=self._t("recent_clear"),
+                             command=self._clear_recent)
+        menu.bind("<Unmap>", lambda e: setattr(
+            self, "_recent_closed_at", time.monotonic()))
+        x = self.path_entry.winfo_rootx()
+        y = self.path_entry.winfo_rooty() + self.path_entry.winfo_height()
+        try:
+            menu.tk_popup(x, y)
+        finally:
+            menu.grab_release()
+        # On Windows tk_popup() blocks until the popup is dismissed, so the
+        # close moment is "now" (the click that closed it is still queued).
+        if sys.platform.startswith("win"):
+            self._recent_closed_at = time.monotonic()
+        return "break"
+
+    def _on_recent_selected(self, path):
+        """Load a path picked from the dropdown. Entries that no longer
+        exist are dropped from the history."""
+        self._close_recent_menu()
+        if os.path.isdir(path):
+            self._load_folder(path)
+        elif os.path.isfile(path):
+            self._load_file(path)
+        else:
+            self._remove_recent(path)
+            self._save_config()
+            messagebox.showwarning(self._t("warn_bad_path"),
+                                   self._t("warn_bad_path_msg"))
 
     def _on_path_entry_submit(self, event=None):
         """Handle Enter in the address bar: load whatever path was typed
@@ -1339,6 +1553,7 @@ class CustomCharacterRemover:
                 fg=self._sc("info"))
 
     def rename_files(self):
+        self._close_recent_menu()
         if not self.files:
             messagebox.showwarning(self._t("warn_no_files"),
                                    self._t("warn_no_files_msg"))
